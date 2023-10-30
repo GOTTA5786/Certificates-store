@@ -1,0 +1,11 @@
+.header{
+    justify-content: space-around;
+    align-items: center;
+    height: 100px;
+    display: flex;
+    color: white;
+    background-color: gray;
+}
+.link:hover{
+    text-decoration: underline;
+}

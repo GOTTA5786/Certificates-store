@@ -1,26 +1,34 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useLayoutEffect } from 'react'
+import './App.css'
+import { Routes, Route } from 'react-router-dom'
+import Layout from './components/Layout/Layout'
+import MainPage from './pages/MainPage/MainPage'
+import { fetchCertificates } from './redux/action-creators/certificates'
+import { useDispatch } from 'react-redux'
+import CertificatePage from './pages/CertificatePage/CertificatePage'
+import PaymentPage from './pages/PaymentPage/PaymentPage'
 
 function App() {
+  const dispatch = useDispatch()
+  
+  useLayoutEffect(() => {
+    //@ts-ignore
+    dispatch(fetchCertificates())
+  }, [])
+  
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <>
+      <Routes>
+        <Route path='/' element={<Layout/>}>
+          <Route index element={<MainPage/>}/>
+          <Route path='certificate/:id' element={<CertificatePage/>}/>
+          <Route path='payment' element={<PaymentPage/>}/>
+        </Route>
+      </Routes>
+    </>
+      
+  )
 }
 
-export default App;
+export default App
+
