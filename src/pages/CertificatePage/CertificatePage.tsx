@@ -5,58 +5,27 @@ import { Certificate } from '../../types/certificateReducer'
 import { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import InputMask from 'react-input-mask';
+import { OSSaleTypes, PaymentTypeId } from '../../types/submit';
+import useStateWithValidation from '../../components/hooks/useFormValidate';
+
+enum InputIdTypes{
+  INPUT_NAME = 'INPUT_NAME',
+  INPUT_EMAIL = "INPUT_EMAIL",
+  INPUT_PHONE_NUMBER = 'INPUT_PHONE_NUMBER',
+}
 
 const CertificatePage: React.FC = () => {
   const { id } = useParams()
   const { items } = useAppSelector(state => state.certificates)
   const navigate = useNavigate()
 
-  const [phone, setPhone] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [name, setName] = useState<string>('');
   const [message, setMessage] = useState<string>('');
 
-  const [phoneValidity, setPhoneValidity] = useState<boolean>(true);
-  const [emailValidity, setEmailValidity] = useState<boolean>(true);
-  const [nameValidity, setNameValidity] = useState<boolean>(true);
+  const [phone, onChangePhone, isPhoneValid, checkPhoneValidity] = useStateWithValidation('+7-___-___-__-__');
+  const [email, onChangeEmail, isEmailValid, checkEmailValidity] = useStateWithValidation('');
+  const [name, onChangeName, isNameValid, checkNameValidity] = useStateWithValidation('');
 
   let certificate: Certificate | undefined
-
-  function handlePhoneValidity(e: React.FocusEvent<HTMLInputElement, Element>){
-    if (e.target.validity.valid) setPhoneValidity(true)
-    else setPhoneValidity(false)
-  }
-
-  function handleEmailValidity(e: React.FocusEvent<HTMLInputElement, Element>){
-    if (e.target.validity.valid) setEmailValidity(true)
-    else setEmailValidity(false)
-  }
-
-  function handleNameValidity(e: React.FocusEvent<HTMLInputElement, Element>){
-    if (e.target.value === '') setNameValidity(false)
-    else setNameValidity(true)
-  }
-
-  function submitValidation(){
-    let check = true
-
-    if (!(phone && phoneValidity)){
-      setPhoneValidity(false)
-      check = false
-    }
-
-    if (!(email && emailValidity)){
-      setEmailValidity(false)
-      check = false
-    }
-
-    if (!(name && nameValidity)){
-      setNameValidity(false)
-      check = false
-    }
-
-    return check
-  }
 
   if (id && items){
     certificate = items.get(id)
@@ -64,9 +33,9 @@ const CertificatePage: React.FC = () => {
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!submitValidation()) return
-    if (certificate && phoneValidity && nameValidity && emailValidity){
-      const OSSale = {
+    
+    if (certificate && isPhoneValid && isEmailValid && isNameValid){
+      const OSSale :OSSaleTypes = {
         "ApiKey": process.env.REACT_APP_API_KEY || '',
         "MethodName": "OSSale",
         'Id': certificate.ID,
@@ -77,18 +46,29 @@ const CertificatePage: React.FC = () => {
         'ClientName': name,
         'Phone': phone,
         'Email': email,
-        'PaymentTypeId': 2,
-        'UseDelivery': 0,
-        'IsGift': 0,
+        'PaymentTypeId': PaymentTypeId.SECOND_PAYMENT_TYPE,
+        'UseDelivery': false,
+        'IsGift': false,
         'MsgText': message,
       }
 
-      fetch('https://sycret.ru/service/api/api',{
+      try {
+        fetch('https://sycret.ru/service/api/api',{
         method: 'post',
         body: JSON.stringify(OSSale)
       })
+      .then(res => {
+        if (res.ok === true) {navigate('/payment')}
+        else{navigate('/error')}
+      })
+      } catch (error) {
+        navigate('/error')
+      }
       
-      navigate('/payment')
+      
+    }
+    else{
+      return
     }
   } 
   
@@ -97,44 +77,46 @@ const CertificatePage: React.FC = () => {
     <div className={styles.container}>
         <form className={styles.form} onSubmit={e => onSubmit(e)} noValidate>
           <p className={styles.itemName}>{certificate.NAME}</p>
-          <label className={nameValidity ? styles.validInput : styles.invalidInput}>
+          <label className={isNameValid ? styles.validInput : styles.invalidInput}>
             ФИО *
             <input 
-            id='name' 
+            id={`${InputIdTypes.INPUT_NAME}`} 
             type='text' 
             placeholder='Введите имя' 
             value={name} 
-            onChange={e => setName(e.target.value)} 
-            onBlur={e => handleNameValidity(e)}
+            onChange={e => onChangeName(e.target)} 
+            onBlur={e => checkNameValidity(e.target)}
             required/>
-            <p className={nameValidity ? styles.validMessage : styles.invalidMessage}>Это поле должно быть заполнено</p>
+            <p className={isNameValid ? styles.validMessage : styles.invalidMessage}>Это поле должно быть заполнено</p>
           </label>
-          <label className={phoneValidity ? styles.validInput : styles.invalidInput}>
+          <label className={isPhoneValid ? styles.validInput : styles.invalidInput}>
             Телефон *
             <InputMask 
+            id={`${InputIdTypes.INPUT_PHONE_NUMBER}`}
             type='tel' 
             mask='+7-999-999-99-99' 
             pattern='\+{1}7{1}[\-][0-9]{3}[\-][0-9]{3}[\-][0-9]{2}[\-][0-9]{2}' 
             placeholder='+7-___-___-__-__' 
             maskChar='_' 
             value={phone} 
-            onChange={e => setPhone(e.target.value)} 
-            onBlur={e => handlePhoneValidity(e)}
+            onChange={e => onChangePhone(e.target)} 
+            onBlur={e => checkPhoneValidity(e.target)}
             required/>
-            <p className={phoneValidity ? styles.validMessage : styles.invalidMessage}>
+            <p className={isPhoneValid ? styles.validMessage : styles.invalidMessage}>
               {(phone === '+7-___-___-__-__' || phone === '') ? 'Это поле должно быть заполнено' : 'Вы ввели некорректный номер'}
             </p>
           </label>
-          <label className={emailValidity ? styles.validInput : styles.invalidInput}>
+          <label className={isEmailValid ? styles.validInput : styles.invalidInput}>
             Почта *
             <input 
+            id={`${InputIdTypes.INPUT_EMAIL}`}
             type='email' 
             placeholder='Введите email' 
             value={email} 
-            onChange={e => setEmail(e.target.value)} 
-            onBlur={e => handleEmailValidity(e)}
+            onChange={e => onChangeEmail(e.target)} 
+            onBlur={e => checkEmailValidity(e.target)}
             required/>
-            <p className={emailValidity ? styles.validMessage : styles.invalidMessage}>
+            <p className={isEmailValid ? styles.validMessage : styles.invalidMessage}>
               {email === '' ? 'Это поле должно быть заполнено' : 'Вы ввели некорректный email'}
             </p>
           </label>

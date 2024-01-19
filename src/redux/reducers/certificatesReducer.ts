@@ -1,6 +1,5 @@
 import { CertificatesActionTypes, CertificatesActions, CertificatesState } from "../../types/certificateReducer"
 
-
 const initialState: CertificatesState = {
     items: new Map([]),
     error: null,
